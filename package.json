@@ -1,0 +1,40 @@
+{
+  "name": "feathers-mongodb-fuzzy-search",
+  "version": "0.0.1",
+  "description": "hook which adds fuzzy search for mongodb through $search in find query",
+  "main": "index.js",
+  "scripts": {
+    "mongo": "mongod --dbpath data",
+    "preversion": "npm test",
+    "postpublish": "git push && git push --tags",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arve0/feathers-mongodb-fuzzy-search.git"
+  },
+  "keywords": [
+    "feathers",
+    "mongodb",
+    "search",
+    "fuzzy",
+    "text"
+  ],
+  "author": "Arve Seljebu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/arve0/feathers-mongodb-fuzzy-search/issues"
+  },
+  "homepage": "https://github.com/arve0/feathers-mongodb-fuzzy-search#readme",
+  "devDependencies": {
+    "feathers": "^2.1.4",
+    "feathers-hooks": "^2.0.1",
+    "feathers-mongodb": "^2.9.0",
+    "mongodb": "^2.2.29",
+    "mocha": "^3.4.2"
+  },
+  "dependencies": {
+    "escape-string-regexp": "^1.0.5"
+  },
+  "runkitExampleFilename": "example.js"
+}
