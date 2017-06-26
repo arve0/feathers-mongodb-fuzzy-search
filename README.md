@@ -90,6 +90,8 @@ app.hooks({
 })
 ```
 
+This package is tested with MongoDB version 3.2. You will probably run into problems using older versions of MongoDB, for example version 2.4 does not support `$text` search.
+
 See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/text/#search-field) for more details about $text.
 
 ## Development
