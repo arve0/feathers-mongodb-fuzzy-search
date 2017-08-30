@@ -95,3 +95,9 @@ it('should find 1 user with last name field starting with "art" using a regex', 
   let docs = await app.service('users').find({ query: { lastName: { $search: '^art' } } })
   assert.equal(docs.length, 1)
 })
+
+it('should manage field matching with complex operators', async function () {
+  this.timeout(50)
+  let docs = await app.service('users').find({ query: { $or: [ { firstName: { $search: 'ay' } }, { lastName: { $search: 'm' } } ] } })
+  assert.equal(docs.length, 3)
+})
