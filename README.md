@@ -15,19 +15,19 @@ const search = require('feathers-mongodb-fuzzy-search')
 // add fuzzy search hook, may also use service.hooks to apply it on individual services only
 app.hooks({
   before: {
-    find: search()
+    find: [search.fullTextSearch(), search.fieldSearch()]
   }
 })
 
 // Field matching
 const users = app.service('users')
-// find users with first name containing a 's' and last name starting by 'art'
-let userDocuments = await users.find({ query: { firstName: { $search: 's' }, lastName: { $search: '^art' } })
+// find users with first name containing a 's' and last name containing 'art'
+let userDocuments = await users.find({ query: { firstName: { $search: 's' }, lastName: { $search: 'art' } })
 
 // Full-text search
 const messages = app.service('messages')
 // enable text index on title property, makes the title content searchable
-messages.Model.createIndex({ title: 'text content talking about cats' })
+messages.Model.createIndex({ title: 'text' })
 
 // find documents with title talking about cats
 let catDocuments = await messages.find({ query: { $search: 'cats' } })
@@ -84,6 +84,8 @@ testDatabase()
 ```
 
 ## Notes
+
+### Full-text search
 As default `"` in `$search` is removed and `$search` is padded with `"`. E.g. `some " text` becomes `"some text"`. If you want to disable this behaviour and leverage the full MongoDB $text API, you can disable escaping like this:
 
 ```js
@@ -94,6 +96,15 @@ app.hooks({
 })
 ```
 
+### Field search
+The `options`object given to `fieldSearch(options)` supports the following:
+  * `fieldNames`: array of field names so that you can control server-side which fields can be searched
+  * `excludedFieldNames`: array of field names that *can't* be searched so that all others can be
+  * `sanitizedFieldNames`: list of field to be filtered of regex patterns to avoid [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS), this is an options because you might want to use the real power of regexp for some models/fields under your control on the server-side, should be used for user inputs
+
+With no options, all the fields will be searchable but sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
+
+### Additional information
 This package is tested with MongoDB version 3.2. You will probably run into problems using older versions of MongoDB, for example version 2.4 does not support `$text` search.
 
 See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/text/#search-field) for more details about $text.
