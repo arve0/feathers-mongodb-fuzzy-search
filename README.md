@@ -3,6 +3,9 @@
 # feathers-mongodb-fuzzy-search
 Add fuzzy `$search` to mongodb `service.find` queries: full-text search on documents as well as pattern matching on individual fields.
 
+For text search queries on string content be sure to text index your fields, as it uses mongodb $text: https://docs.mongodb.com/manual/reference/operator/query/text/.
+For simple field match on a string field https://docs.mongodb.com/manual/reference/operator/query/regex/ is used.
+
 ## Install
 ```
 npm install feathers-mongodb-fuzzy-search
@@ -56,7 +59,7 @@ async function testDatabase () {
   // add fuzzy search hook, may also use app.hooks for all services
   messages.hooks({
     before: {
-      find: search()
+      find: search.fullTextSearch()
     }
   })
   // add documents
@@ -91,24 +94,32 @@ As default `"` in `$search` is removed and `$search` is padded with `"`. E.g. `s
 ```js
 app.hooks({
   before: {
-    find: search({ escape: false })
+    find: search.fullTextSearch({ escape: false })
   }
 })
 ```
 
 ### Field search
 The `options`object given to `fieldSearch(options)` supports the following:
-  * `fieldNames`: array of field names so that you can control server-side which fields can be searched
-  * `excludedFieldNames`: array of field names that *can't* be searched so that all others can be
-  * `sanitizedFieldNames`: list of field to be filtered of regex patterns to avoid [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS), this is an options because you might want to use the real power of regexp for some models/fields under your control on the server-side, should be used for user inputs
+* `fieldNames`: array of field names so that you can control server-side which fields can be searched
+* `excludedFieldNames`: array of field names that *can't* be searched so that all others can be
+* `sanitizedFieldNames`: list of field to be filtered of regex patterns to avoid [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS), this is an option because you might want to use the real power of regexp for some models/fields under your control on the server-side, should be typically used for user inputs
+
+```js
+app.service('users').hooks({
+  before: {
+    find: search.fieldSearch({ excludedFieldNames: ['fullName'], sanitizedFieldNames: ['firstName'] })
+  }
+})
+```
 
 With no options, all the fields will be searchable but sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
 
 ### Additional information
 This package is tested with MongoDB version 3.2. You will probably run into problems using older versions of MongoDB, for example version 2.4 does not support `$text` search.
 
-See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/text/#search-field) for more details about $text.
-See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/regex) for more details about $regex.
+See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/text/#search-field) for more details about `$text`.
+See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/regex) for more details about `$regex`.
 
 ## Development
 ```
