@@ -45,6 +45,11 @@ it('should find 2 documents with title containing world', async function () {
   assert.equal(docs.length, 2)
 })
 
+it('should find 1 document with cat stem', async function () {
+  let docs = await app.service('messages').find({ query: { $search: 'cat' } })
+  assert.equal(docs.length, 1)
+})
+
 it('should not use or when searching with space', async function () {
   let docs = await app.service('messages').find({ query: { $search: 'lorem ipsum' } })
   assert.equal(docs.length, 1)
