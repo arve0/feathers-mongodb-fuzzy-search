@@ -72,6 +72,18 @@ module.exports = function (options = {}) {
           $search: options.escape ? escape(hook.params.query.$search) : hook.params.query.$search
         }
         delete hook.params.query.$search
+        if (hook.params.query.$language) {
+          hook.params.query.$text.$language = hook.params.query.$language
+          delete hook.params.query.$language
+        }
+        if (hook.params.query.$caseSensitive) {
+          hook.params.query.$text.$caseSensitive = hook.params.query.$caseSensitive
+          delete hook.params.query.$caseSensitive
+        }
+        if (hook.params.query.$diacriticSensitive) {
+          hook.params.query.$text.$diacriticSensitive = hook.params.query.$diacriticSensitive
+          delete hook.params.query.$diacriticSensitive
+        }
       }
       return hook
     }

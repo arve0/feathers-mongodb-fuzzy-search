@@ -9,7 +9,7 @@ const textDocuments = [
   { title: 'lorem ipsum' },
   { title: 'lorem asdf ipsum' },
   { title: 'hello different world' },
-  { title: 'qwerty qwerty qwerty qwerty world' },
+  { title: 'qwerty qwerty qwerty qwerty World' },
   { title: 'cats are awesome.-animales' }
 ]
 const userDocuments = [
@@ -40,12 +40,17 @@ after(function remove () {
   .then(_ => app.service('users').remove(null))
 })
 
-it('should find 2 documents with title containing world', async function () {
-  let docs = await app.service('messages').find({ query: { $search: 'world' } })
+it('should find 2 documents with title containing World when case insensitive', async function () {
+  let docs = await app.service('messages').find({ query: { $search: 'World' } })
   assert.equal(docs.length, 2)
 })
 
-it('should find 1 document with cat stem', async function () {
+it('should find 1 document with title containing World when case sensitive', async function () {
+  let docs = await app.service('messages').find({ query: { $search: 'World', $caseSensitive: true } })
+  assert.equal(docs.length, 1)
+})
+
+it('should find 1 document with cat/differ due to stemming', async function () {
   let docs = await app.service('messages').find({ query: { $search: 'cat' } })
   assert.equal(docs.length, 1)
   docs = await app.service('messages').find({ query: { $search: 'differ' } })

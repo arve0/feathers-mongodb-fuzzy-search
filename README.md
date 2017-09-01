@@ -52,6 +52,7 @@ app.hooks({
 })
 ```
 
+Along with your query you can pass the standards MongoDB options for `$text`: `$language`, `$caseSensitive` and `$diacriticSensitive`. E.g. If you'd like to disable [stemming](https://en.wikipedia.org/wiki/Stemming) add `$language: 'none'` to your query parameters.
 ### Field search
 The `options` object given to `search(options)` supports the following:
 * `fields`: array of field names so that you can control server-side which fields can be searched
