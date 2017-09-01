@@ -1,10 +1,10 @@
 [![npm version](https://badge.fury.io/js/feathers-mongodb-fuzzy-search.svg)](https://badge.fury.io/js/feathers-mongodb-fuzzy-search) [![Build Status](https://travis-ci.org/arve0/feathers-mongodb-fuzzy-search.svg?branch=master)](https://travis-ci.org/arve0/feathers-mongodb-fuzzy-search)
 
 # feathers-mongodb-fuzzy-search
-Add fuzzy `$search` to mongodb `service.find` queries: full-text search on documents as well as pattern matching on individual fields.
+Add fuzzy `$search` to mongodb `service.find` queries: full-text search on documents with [stemming](https://en.wikipedia.org/wiki/Stemming) as well as pattern matching on individual fields.
 
 For text search queries on string content be sure to text index your fields, as it uses mongodb $text: https://docs.mongodb.com/manual/reference/operator/query/text/.
-For simple field match on a string field https://docs.mongodb.com/manual/reference/operator/query/regex/ is used.
+For simple pattern matching on string fields https://docs.mongodb.com/manual/reference/operator/query/regex/ is used.
 
 ## Install
 ```
@@ -18,7 +18,7 @@ const search = require('feathers-mongodb-fuzzy-search')
 // add fuzzy search hook, may also use service.hooks to apply it on individual services only
 app.hooks({
   before: {
-    find: [search.fullTextSearch(), search.fieldSearch()]
+    find: [search(), search(fields: ['firstName', 'lastName'])]
   }
 })
 
@@ -33,58 +33,11 @@ const messages = app.service('messages')
 messages.Model.createIndex({ title: 'text' })
 
 // find documents with title talking about cats
-let catDocuments = await messages.find({ query: { $search: 'cats' } })
+let catDocuments = await messages.find({ query: { $search: 'cat' } })
+// will find titles including 'cat', 'cats', etc. thanks to stemming
 ```
 
-Complete example:
-```js
-const feathers = require('feathers')
-const hooks = require('feathers-hooks')
-const MongoClient = require('mongodb').MongoClient
-const service = require('feathers-mongodb')
-const search = require('feathers-mongodb-fuzzy-search')
-
-// use async function for await syntax
-async function testDatabase () {
-  let db = await MongoClient.connect('mongodb://localhost:27017/feathers')
-
-  let app = feathers()
-  app.configure(hooks())
-
-  // setup messages service
-  app.use('/messages', service({ Model: db.collection('messages') }))
-  let messages = app.service('messages')
-  // enable text index on title property
-  messages.Model.createIndex({ title: 'text' })
-  // add fuzzy search hook, may also use app.hooks for all services
-  messages.hooks({
-    before: {
-      find: search.fullTextSearch()
-    }
-  })
-  // add documents
-  await messages.create([
-    { title: 'lorem ipsum' },
-    { title: 'lorem asdf ipsum' },
-    { title: 'hello world' },
-    { title: 'qwerty qwerty qwerty qwerty world' },
-    { title: 'cats are awesome.-animales' },
-  ])
-  // find documents
-  let docs = await messages.find({ query: { $search: 'world' } })
-  console.log(docs)
-  // [ { _id: 595173771dab955e373ac721, title: 'qwerty qwerty qwerty qwerty world' },
-  //   { _id: 595173771dab955e373ac720, title: 'hello world' } ]
-
-  // remove all documents
-  await messages.remove(null)
-
-  db.close()  // close connection to mongodb and exit
-}
-
-testDatabase()
-  .catch(e => console.error(e))
-```
+Complete example [here](./example.js)
 
 ## Notes
 
@@ -94,26 +47,28 @@ As default `"` in `$search` is removed and `$search` is padded with `"`. E.g. `s
 ```js
 app.hooks({
   before: {
-    find: search.fullTextSearch({ escape: false })
+    find: search({ escape: false })
   }
 })
 ```
 
 ### Field search
-The `options`object given to `fieldSearch(options)` supports the following:
-* `fieldNames`: array of field names so that you can control server-side which fields can be searched
-* `excludedFieldNames`: array of field names that *can't* be searched so that all others can be
-* `sanitizedFieldNames`: list of field to be filtered of regex patterns to avoid [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS), this is an option because you might want to use the real power of regexp for some models/fields under your control on the server-side, should be typically used for user inputs
+The `options` object given to `search(options)` supports the following:
+* `fields`: array of field names so that you can control server-side which fields can be searched
+* `excludedFields`: array of field names that *can't* be searched so that all others can be
+* `escape`: boolean indicating if regex patterns have to be escaped in search values to avoid [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS) (default to `true`)
+* `escapedFields`: list of field to be escaped when the previous option is `true`. If not given all fields will be escaped. Otherwise fields not included here will not be escaped as you might want to use the real power of regexp for some models/fields under your control on the server-side.
 
 ```js
 app.service('users').hooks({
   before: {
-    find: search.fieldSearch({ excludedFieldNames: ['fullName'], sanitizedFieldNames: ['firstName'] })
+    find: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] })
   }
 })
 ```
 
-With no options, all the fields will be searchable but sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
+With no escape options all the fields will sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
+**Please not the user inputs should always be escaped to prevent attacks.**
 
 ### Additional information
 This package is tested with MongoDB version 3.2. You will probably run into problems using older versions of MongoDB, for example version 2.4 does not support `$text` search.

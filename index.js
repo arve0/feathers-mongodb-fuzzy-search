@@ -10,12 +10,16 @@ function escape (str) {
 }
 
 /**
- * Removes characters in a string that are coming from a RegExp to avoid https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS.
- * Inspired from https://github.com/google/closure-library/blob/master/closure/goog/string/string.js#L1148
+ * Escapes characters in the string that are not safe to use in a RegExp.
+ * @param {*} s The string to escape. If not a string, it will be casted
+ *     to one.
+ * @return {string} A RegExp safe, escaped copy of {@code s}.
+ * from https://github.com/google/closure-library/blob/master/closure/goog/string/string.js#L1148
  */
-function sanitizeRegExp (str) {
-  return str.replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '').
-      replace(/\x08/g, '\\x08');
+function regExpEscape (s) {
+  return String(s)
+      .replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '\\$1')
+      .replace(/\x08/g, '\\x08');
 }
 
 function transformSearchFieldsInQuery (queryObject, options, fieldName) {
@@ -26,10 +30,10 @@ function transformSearchFieldsInQuery (queryObject, options, fieldName) {
       let fieldName = ''
       if (value.hasOwnProperty('$search')) {
         // Manage excluded fields
-        if (options && Array.isArray(options.fieldNames) && !options.fieldNames.includes(key)) {
+        if (Array.isArray(options.fields) && !options.fields.includes(key)) {
           throw new errors.BadRequest('You are not allowed to perform $search on field ' + key)
         } 
-        if (options && Array.isArray(options.excludedFieldNames) && options.excludedFieldNames.includes(key)) {
+        if (Array.isArray(options.excludedFields) && options.excludedFields.includes(key)) {
           throw new errors.BadRequest('You are not allowed to perform $search on field ' + key)
         }
         fieldName = key
@@ -38,9 +42,11 @@ function transformSearchFieldsInQuery (queryObject, options, fieldName) {
     } else if (key === '$search') {
       // Default to case insensitive if not given
       var caseSensitive = queryObject.caseSensitive
-      // Sanitize when required and by default
-      if (!options || !Array.isArray(options.sanitizedFieldNames) || options.sanitizedFieldNames.includes(fieldName)) {
-        value = sanitizeRegExp(value)
+      // Sanitize when required
+      if (options.escape) {
+        if (!Array.isArray(options.escapedFields) || options.escapedFields.includes(fieldName)) {
+          value = regExpEscape(value)
+        }
       }
       // Update query
       queryObject['$regex'] = caseSensitive ? new RegExp(value) : new RegExp(value, 'i')
@@ -51,10 +57,15 @@ function transformSearchFieldsInQuery (queryObject, options, fieldName) {
   })
 }
 
-module.exports = {
-  fullTextSearch: function (options = {}) {
-    // if escape is undefined -> escape = true
-    options.escape = options.escape === false ? false : true
+module.exports = function (options = {}) {
+  // if escape is undefined -> escape = true
+  options.escape = options.escape === false ? false : true
+  // hook for full-text search or field-based search ?
+  if (options.fields || options.excludedFields) {
+    return function (hook) {
+      transformSearchFieldsInQuery(hook.params.query, options)
+    }
+  } else {
     return function (hook) {
       if (hook.method === 'find' && hook.params.query && hook.params.query.$search) {
         hook.params.query.$text = {
@@ -63,11 +74,6 @@ module.exports = {
         delete hook.params.query.$search
       }
       return hook
-    }
-  },
-  fieldSearch: function (options = {}) {
-    return function (hook) {
-      transformSearchFieldsInQuery(hook.params.query, options)
     }
   }
 }

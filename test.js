@@ -8,7 +8,7 @@ const assert = require('assert')
 const textDocuments = [
   { title: 'lorem ipsum' },
   { title: 'lorem asdf ipsum' },
-  { title: 'hello world' },
+  { title: 'hello different world' },
   { title: 'qwerty qwerty qwerty qwerty world' },
   { title: 'cats are awesome.-animales' }
 ]
@@ -27,9 +27,9 @@ before(async function () {
 
   app.use('/messages', service({ Model: db.collection('messages') }))
   app.service('messages').Model.createIndex({ title: 'text' })
-  app.service('messages').hooks({ before: { find: search.fullTextSearch() } })
+  app.service('messages').hooks({ before: { find: search() } })
   app.use('/users', service({ Model: db.collection('users') }))
-  app.service('users').hooks({ before: { find: search.fieldSearch({ excludedFieldNames: ['fullName'], sanitizedFieldNames: ['firstName'] }) } })
+  app.service('users').hooks({ before: { find: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] }) } })
 
   return app.service('messages').create(textDocuments)
     .then(_ => app.service('users').create(userDocuments))
@@ -47,6 +47,8 @@ it('should find 2 documents with title containing world', async function () {
 
 it('should find 1 document with cat stem', async function () {
   let docs = await app.service('messages').find({ query: { $search: 'cat' } })
+  assert.equal(docs.length, 1)
+  docs = await app.service('messages').find({ query: { $search: 'differ' } })
   assert.equal(docs.length, 1)
 })
 
@@ -102,7 +104,7 @@ it('should find 1 user with last name field starting with "art" using a regex', 
 
 it('should sanitize search request based on regex on escaped field', async function () {
   let docs = await app.service('users').find({ query: { firstName: { $search: '^a' } } })
-  assert.equal(docs.length, 2)
+  assert.equal(docs.length, 0)
 })
 
 it('should manage field matching with complex operators', async function () {
