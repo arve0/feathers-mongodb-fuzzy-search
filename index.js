@@ -67,7 +67,8 @@ module.exports = function (options = {}) {
     }
   } else {
     return function (hook) {
-      if (hook.method === 'find' && hook.params.query && hook.params.query.$search) {
+      // Allowed for find and multiple patch/update/remove
+      if (!hook.id && hook.params.query && hook.params.query.$search) {
         hook.params.query.$text = {
           $search: options.escape ? escape(hook.params.query.$search) : hook.params.query.$search
         }

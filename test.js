@@ -27,9 +27,9 @@ before(async function () {
 
   app.use('/messages', service({ Model: db.collection('messages') }))
   app.service('messages').Model.createIndex({ title: 'text' })
-  app.service('messages').hooks({ before: { find: search() } })
+  app.service('messages').hooks({ before: { all: search() } })
   app.use('/users', service({ Model: db.collection('users') }))
-  app.service('users').hooks({ before: { find: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] }) } })
+  app.service('users').hooks({ before: { all: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] }) } })
 
   return app.service('messages').create(textDocuments)
     .then(_ => app.service('users').create(userDocuments))
@@ -54,6 +54,11 @@ it('should find 1 document with cat/differ due to stemming', async function () {
   let docs = await app.service('messages').find({ query: { $search: 'cat' } })
   assert.equal(docs.length, 1)
   docs = await app.service('messages').find({ query: { $search: 'differ' } })
+  assert.equal(docs.length, 1)
+})
+
+it('should patch 1 document with title containing World when case sensitive', async function () {
+  let docs = await app.service('messages').patch(null, { patched: true }, { query: { $search: 'World', $caseSensitive: true } })
   assert.equal(docs.length, 1)
 })
 
