@@ -1,10 +1,13 @@
 [![npm version](https://badge.fury.io/js/feathers-mongodb-fuzzy-search.svg)](https://badge.fury.io/js/feathers-mongodb-fuzzy-search) [![Build Status](https://travis-ci.org/arve0/feathers-mongodb-fuzzy-search.svg?branch=master)](https://travis-ci.org/arve0/feathers-mongodb-fuzzy-search)
 
 # feathers-mongodb-fuzzy-search
-Add fuzzy `$search` to mongodb `service.find` queries: full-text search on documents with [stemming](https://en.wikipedia.org/wiki/Stemming) as well as pattern matching on individual fields.
+Add fuzzy `$search` to mongodb queries:
+* full-text search on documents with [stemming](https://en.wikipedia.org/wiki/Stemming)
+* pattern matching on individual fields
 
-For text search queries on string content be sure to text index your fields, as it uses mongodb $text: https://docs.mongodb.com/manual/reference/operator/query/text/.
-For simple pattern matching on string fields https://docs.mongodb.com/manual/reference/operator/query/regex/ is used.
+For text search queries on string content be sure to text index your fields, as it uses mongodb [$text](https://docs.mongodb.com/manual/reference/operator/query/text/).
+
+For simple pattern matching on string fields [$regex](https://docs.mongodb.com/manual/reference/operator/query/regex/) is used.
 
 ## Install
 ```
@@ -68,13 +71,14 @@ app.service('users').hooks({
 })
 ```
 
-With no escape options all the fields will sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
-**Please not the user inputs should always be escaped to prevent attacks.**
+With no escape options all the fields will be sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
+**Please note that user inputs should always be escaped to prevent attacks.**
 
 ### Additional information
 This package is tested with MongoDB version 3.2. You will probably run into problems using older versions of MongoDB, for example version 2.4 does not support `$text` search.
 
 See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/text/#search-field) for more details about `$text`.
+
 See [mongodb documentation](https://docs.mongodb.com/manual/reference/operator/query/regex) for more details about `$regex`.
 
 ## Development
