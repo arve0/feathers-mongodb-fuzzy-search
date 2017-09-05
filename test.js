@@ -5,12 +5,19 @@ const service = require('feathers-mongodb');
 const search = require('./')
 const assert = require('assert')
 
-const documents = [
+const textDocuments = [
   { title: 'lorem ipsum' },
   { title: 'lorem asdf ipsum' },
-  { title: 'hello world' },
-  { title: 'qwerty qwerty qwerty qwerty world' },
-  { title: 'cats are awesome.-animales' },
+  { title: 'hello different world' },
+  { title: 'qwerty qwerty qwerty qwerty World' },
+  { title: 'cats are awesome.-animales' }
+]
+const userDocuments = [
+  { firstName: 'John', lastName: 'Doe', fullName: 'John Doe' },
+  { firstName: 'Maya', lastName: 'White', fullName: 'Maya White' },
+  { firstName: 'Maya', lastName: 'Black', fullName: 'Maya Black' },
+  { firstName: 'Steve', lastName: 'Martins', fullName: 'Steve Martins' },
+  { firstName: 'Steve', lastName: 'Artins', fullName: 'Steve Martins' }
 ]
 
 before(async function () {
@@ -18,41 +25,99 @@ before(async function () {
   app = feathers()
   app.configure(hooks())
 
-  app.use('/test', service({ Model: db.collection('messages') }))
-  app.service('test').Model.createIndex({ title: 'text' })
+  app.use('/messages', service({ Model: db.collection('messages') }))
+  app.service('messages').Model.createIndex({ title: 'text' })
+  app.service('messages').hooks({ before: { all: search() } })
+  app.use('/users', service({ Model: db.collection('users') }))
+  app.service('users').hooks({ before: { all: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] }) } })
 
-  app.hooks({
-    before: {
-      find: search()
-    }
-  })
-
-  return app.service('test').create(documents)
+  return app.service('messages').create(textDocuments)
+    .then(_ => app.service('users').create(userDocuments))
 })
 
 after(function remove () {
-  return app.service('test').remove(null)
+  return app.service('messages').remove(null)
+  .then(_ => app.service('users').remove(null))
 })
 
-
-it('should find 2 documents containing world', async function () {
-  this.timeout(50)
-  let docs = await app.service('test').find({ query: { $search: 'world' } })
+it('should find 2 documents with title containing World when case insensitive', async function () {
+  let docs = await app.service('messages').find({ query: { $search: 'World' } })
   assert.equal(docs.length, 2)
 })
 
+it('should find 1 document with title containing World when case sensitive', async function () {
+  let docs = await app.service('messages').find({ query: { $search: 'World', $caseSensitive: true } })
+  assert.equal(docs.length, 1)
+})
+
+it('should find 1 document with cat/differ due to stemming', async function () {
+  let docs = await app.service('messages').find({ query: { $search: 'cat' } })
+  assert.equal(docs.length, 1)
+  docs = await app.service('messages').find({ query: { $search: 'differ' } })
+  assert.equal(docs.length, 1)
+})
+
+it('should patch 1 document with title containing World when case sensitive', async function () {
+  let docs = await app.service('messages').patch(null, { patched: true }, { query: { $search: 'World', $caseSensitive: true } })
+  assert.equal(docs.length, 1)
+})
+
 it('should not use or when searching with space', async function () {
-  let docs = await app.service('test').find({ query: { $search: 'lorem ipsum' } })
+  let docs = await app.service('messages').find({ query: { $search: 'lorem ipsum' } })
   assert.equal(docs.length, 1)
 })
 
 it('should not be able to quit " escape', async function () {
-  let docs = await app.service('test').find({ query: { $search: 'lorem" "ipsum' } })
+  let docs = await app.service('messages').find({ query: { $search: 'lorem" "ipsum' } })
   // " are stripped, and we get match for { title: "lorem ipsum" }
   assert.equal(docs.length, 1)
 })
 
 it('should be able to search strings with .-"', async function () {
-  let docs = await app.service('test').find({ query: { $search: 'awesome.-animales' } })
+  let docs = await app.service('messages').find({ query: { $search: 'awesome.-animales' } })
   assert.equal(docs.length, 1)
+})
+
+it('should not allow search request based on excluded field', async function () {
+  try {
+    let docs = await app.service('users').find({ query: { fullName: { $search: 'a' } } })
+    assert.fail('should have raised error')
+  } catch (error) {
+    assert.ok(error)
+  }
+})
+
+it('should find 2 users with first name field containing "ay"', async function () {
+  let docs = await app.service('users').find({ query: { firstName: { $search: 'ay' } } })
+  assert.equal(docs.length, 2)
+})
+
+it('should find 2 users with last name field containing "art"', async function () {
+  let docs = await app.service('users').find({ query: { lastName: { $search: 'art' } } })
+  assert.equal(docs.length, 2)
+})
+
+it('should find 1 user with first name field containing "ay" and last name field containing "b" (case insensitive)', async function () {
+  let docs = await app.service('users').find({ query: { firstName: { $search: 'ay' }, lastName: { $search: 'b' } } })
+  assert.equal(docs.length, 1)
+})
+
+it('should not find user with first name field containing "ay" and last name field containing "b" (case sensitive)', async function () {
+  let docs = await app.service('users').find({ query: { firstName: { $search: 'ay' }, lastName: { $search: 'b', caseSensitive: true } } })
+  assert.equal(docs.length, 0)
+})
+
+it('should find 1 user with last name field starting with "art" using a regex', async function () {
+  let docs = await app.service('users').find({ query: { lastName: { $search: '^art' } } })
+  assert.equal(docs.length, 1)
+})
+
+it('should sanitize search request based on regex on escaped field', async function () {
+  let docs = await app.service('users').find({ query: { firstName: { $search: '^a' } } })
+  assert.equal(docs.length, 0)
+})
+
+it('should manage field matching with complex operators', async function () {
+  let docs = await app.service('users').find({ query: { $or: [ { firstName: { $search: 'ay' } }, { lastName: { $search: 'm' } } ] } })
+  assert.equal(docs.length, 3)
 })
