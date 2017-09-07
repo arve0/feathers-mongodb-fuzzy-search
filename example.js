@@ -28,7 +28,7 @@ async function testDatabase () {
     { title: 'lorem asdf ipsum' },
     { title: 'hello world' },
     { title: 'qwerty qwerty qwerty qwerty world' },
-    { title: 'cats are awesome.-animales' },
+    { title: 'cats are awesome.-animales' }
   ])
   // find documents
   let docs = await messages.find({ query: { $search: 'world' } })
