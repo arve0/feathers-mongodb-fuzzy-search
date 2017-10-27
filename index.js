@@ -24,6 +24,9 @@ function regExpEscape (s) {
 
 function transformSearchFieldsInQuery (query, options, fieldName) {
   utils.each(query, (value, key) => {
+    if (key === '$text') {
+      return
+    }
     // Process current attribute or  recurse
     if (value && typeof value === 'object') {
       // Searchable field ?
