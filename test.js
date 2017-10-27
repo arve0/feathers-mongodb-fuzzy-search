@@ -5,7 +5,7 @@ const service = require('feathers-mongodb')
 const search = require('./')
 const assert = require('assert')
 
-const textDocuments = [
+const messageDocuments = [
   { title: 'lorem ipsum' },
   { title: 'lorem asdf ipsum' },
   { title: 'hello different world' },
@@ -44,13 +44,28 @@ before(async function () {
     }
   })
 
-  await app.service('messages').create(textDocuments)
+  app.use('/both', service({ Model: db.collection('both') }))
+  app.service('both').Model.createIndex({ title: 'text' })
+  app.service('both').hooks({
+    before: {
+      all: [
+        search(),  // full text search
+        search({   // regex search
+          fields: ['title']
+        })
+      ]
+    }
+  })
+
+  await app.service('messages').create(messageDocuments)
   await app.service('users').create(userDocuments)
+  await app.service('both').create(messageDocuments)
 })
 
 after(async function remove () {
   await app.service('messages').remove(null)
   await app.service('users').remove(null)
+  await app.service('both').remove(null)
 })
 
 it('should find 2 documents with title containing World when case insensitive', async function () {
@@ -133,4 +148,11 @@ it('should sanitize search request based on regex on escaped field', async funct
 it('should manage field matching with complex operators', async function () {
   let docs = await app.service('users').find({ query: { $or: [ { firstName: { $search: 'ay' } }, { lastName: { $search: 'm' } } ] } })
   assert.equal(docs.length, 3)
+})
+
+it('should work with both full text search and regex search', async function () {
+  let ft = await app.service('both').find({ query: { $search: 'World' } })
+  let reg = await app.service('both').find({ query: { title: { $search: 'World' } } })
+  assert.equal(ft.length, 2)
+  assert.equal(reg.length, 2)
 })
