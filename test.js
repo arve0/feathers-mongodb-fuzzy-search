@@ -178,3 +178,8 @@ it('should find 2 documents with title containing World when case insensitive us
   })
 })
 
+it('should find 2 users with first name field containing "ay" using REST API', async function () {
+  let response = await request.get('http://localhost:3030/users').query({ firstName: { $search: 'ay' } })
+  assert.equal(response.body.length, 2)
+})
+
