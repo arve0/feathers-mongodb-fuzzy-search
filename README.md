@@ -1,13 +1,11 @@
 [![npm version](https://badge.fury.io/js/feathers-mongodb-fuzzy-search.svg)](https://badge.fury.io/js/feathers-mongodb-fuzzy-search) [![Build Status](https://travis-ci.org/arve0/feathers-mongodb-fuzzy-search.svg?branch=master)](https://travis-ci.org/arve0/feathers-mongodb-fuzzy-search)
 
 # feathers-mongodb-fuzzy-search
-Add fuzzy `$search` to mongodb queries:
-* full-text search on documents with [stemming](https://en.wikipedia.org/wiki/Stemming)
-* pattern matching on individual fields
+Add `$search` to mongodb `service.find`, `update`, `patch` and `remove` queries. Full-text search on documents with [stemming](https://en.wikipedia.org/wiki/Stemming) as well as pattern matching on individual fields.
 
-For text search queries on string content be sure to text index your fields, as it uses mongodb [$text](https://docs.mongodb.com/manual/reference/operator/query/text/).
+For full-text search, be sure to index your text fields, as this plugin uses [mongodb $text](https://docs.mongodb.com/manual/reference/operator/query/text/).
 
-For simple pattern matching on string fields [$regex](https://docs.mongodb.com/manual/reference/operator/query/regex/) is used.
+For field pattern matching, [mongodb $regex](https://docs.mongodb.com/manual/reference/operator/query/regex/) is used.
 
 ## Install
 ```
@@ -18,29 +16,40 @@ npm install feathers-mongodb-fuzzy-search
 ```js
 const search = require('feathers-mongodb-fuzzy-search')
 
-// add fuzzy search hook, may also use service.hooks to apply it on individual services only
+// add search hook
+// may also use service.hooks to apply it on individual services only
 app.hooks({
   before: {
-    find: [search(), search(fields: ['firstName', 'lastName'])]
+    all: [
+      search(), // full text search on text indexes
+      search({  // regex search on given fields
+        fields: ['firstName', 'lastName']
+      })
+    ]
   }
 })
 
-// Field matching
-const users = app.service('users')
-// find users with first name containing a 's' and last name containing 'art'
-let userDocuments = await users.find({ query: { firstName: { $search: 's' }, lastName: { $search: 'art' } })
-
-// Full-text search
+// create a text index on title property, for full-text search
+// you may add multiple fields to the text index
+// see the mongodb documentation for more on $text
 const messages = app.service('messages')
-// enable text index on title property, makes the title content searchable
 messages.Model.createIndex({ title: 'text' })
 
-// find documents with title talking about cats
+// find documents with title containing 'cat'
+// will find titles including 'cat', 'cats', etc. thanks to mongodb stemming
+// note: you can only use await inside async functions
 let catDocuments = await messages.find({ query: { $search: 'cat' } })
-// will find titles including 'cat', 'cats', etc. thanks to stemming
+
+// find users with first name containing a 's' and last name containing 'art'
+let userDocuments = await app.service('users').find({
+  query: {
+    firstName: { $search: 's' },
+    lastName: { $search: 'art' }
+  }
+})
 ```
 
-Complete example [here](./example.js)
+Complete example [here](./example.js).
 
 ## Notes
 
@@ -55,24 +64,38 @@ app.hooks({
 })
 ```
 
-Along with your query you can pass the standards MongoDB options for `$text`: `$language`, `$caseSensitive` and `$diacriticSensitive`. E.g. If you'd like to disable [stemming](https://en.wikipedia.org/wiki/Stemming) add `$language: 'none'` to your query parameters.
-### Field search
+### RegExp field search
 The `options` object given to `search(options)` supports the following:
-* `fields`: array of field names so that you can control server-side which fields can be searched
-* `excludedFields`: array of field names that *can't* be searched so that all others can be
-* `escape`: boolean indicating if regex patterns have to be escaped in search values to avoid [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS) (default to `true`)
-* `escapedFields`: list of field to be escaped when the previous option is `true`. If not given all fields will be escaped. Otherwise fields not included here will not be escaped as you might want to use the real power of regexp for some models/fields under your control on the server-side.
+
+- `fields`: Array of field names to allow searching in.
+- `excludedFields`: Array of field names that *can't* be searched. If given, any field not in array can be searched.
+- `fieldsNotEscaped`: Array of fields to be excluded from RegExp escape. As default any field not given are escaped to avoid [RegExp denial of service attacks](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
+
 
 ```js
 app.service('users').hooks({
   before: {
-    find: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] })
+    find: search({
+      // make all fields but 'fullName' are searchable
+      excludedFields: ['fullName'],
+      // do not escape RegExp special characters for the field 'firstName'
+      fieldsNotEscaped: ['firstName']
+    })
   }
 })
 ```
 
-With no escape options all the fields will be sanitized to prevent unexpected [DOS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS).
-**Please note that user inputs should always be escaped to prevent attacks.**
+### MongoDB options
+You can pass MongoDB options for `$text`, like `$language`, `$caseSensitive` and `$diacriticSensitive` with your query. E.g. If you'd like to disable [stemming](https://en.wikipedia.org/wiki/Stemming) add `$language: 'none'` to your query parameters:
+
+```js
+users.find({
+  query: {
+    $search: 'cats',
+    $language: 'none'
+  }
+})
+```
 
 ### Additional information
 This package is tested with MongoDB version 3.2. You will probably run into problems using older versions of MongoDB, for example version 2.4 does not support `$text` search.

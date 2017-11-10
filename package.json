@@ -1,6 +1,6 @@
 {
   "name": "feathers-mongodb-fuzzy-search",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "description": "hook which adds fuzzy search for mongodb through $search in find query",
   "main": "index.js",
   "scripts": {
@@ -34,7 +34,6 @@
     "mongodb": "^2.2.29"
   },
   "dependencies": {
-    "escape-string-regexp": "^1.0.5",
     "feathers-commons": "^0.8.7",
     "feathers-errors": "^2.9.1"
   },

@@ -1,11 +1,11 @@
 const feathers = require('feathers')
 const hooks = require('feathers-hooks')
-const MongoClient = require('mongodb').MongoClient;
-const service = require('feathers-mongodb');
+const MongoClient = require('mongodb').MongoClient
+const service = require('feathers-mongodb')
 const search = require('./')
 const assert = require('assert')
 
-const textDocuments = [
+const messageDocuments = [
   { title: 'lorem ipsum' },
   { title: 'lorem asdf ipsum' },
   { title: 'hello different world' },
@@ -20,6 +20,7 @@ const userDocuments = [
   { firstName: 'Steve', lastName: 'Artins', fullName: 'Steve Martins' }
 ]
 
+let app
 before(async function () {
   let db = await MongoClient.connect('mongodb://localhost:27017/feathers')
   app = feathers()
@@ -27,22 +28,54 @@ before(async function () {
 
   app.use('/messages', service({ Model: db.collection('messages') }))
   app.service('messages').Model.createIndex({ title: 'text' })
-  app.service('messages').hooks({ before: { all: search() } })
-  app.use('/users', service({ Model: db.collection('users') }))
-  app.service('users').hooks({ before: { all: search({ excludedFields: ['fullName'], escapedFields: ['firstName'] }) } })
+  app.service('messages').hooks({
+    before: {
+      all: search()  // full text search
+    }
+  })
 
-  return app.service('messages').create(textDocuments)
-    .then(_ => app.service('users').create(userDocuments))
+  app.use('/users', service({ Model: db.collection('users') }))
+  app.service('users').hooks({
+    before: {
+      all: search({
+        excludedFields: ['fullName'],  // regex search
+        fieldsNotEscaped: ['lastName']
+      })
+    }
+  })
+
+  app.use('/both', service({ Model: db.collection('both') }))
+  app.service('both').Model.createIndex({ title: 'text' })
+  app.service('both').hooks({
+    before: {
+      all: [
+        search(),  // full text search
+        search({   // regex search
+          fields: ['title']
+        })
+      ]
+    }
+  })
+
+  await app.service('messages').create(messageDocuments)
+  await app.service('users').create(userDocuments)
+  await app.service('both').create(messageDocuments)
 })
 
-after(function remove () {
-  return app.service('messages').remove(null)
-  .then(_ => app.service('users').remove(null))
+after(async function remove () {
+  await app.service('messages').remove(null)
+  await app.service('users').remove(null)
+  await app.service('both').remove(null)
 })
 
 it('should find 2 documents with title containing World when case insensitive', async function () {
   let docs = await app.service('messages').find({ query: { $search: 'World' } })
   assert.equal(docs.length, 2)
+})
+
+it('should patch 1 document with title containing World when case sensitive', async function () {
+  let docs = await app.service('messages').patch(null, { patched: true }, { query: { $search: 'World', $caseSensitive: true } })
+  assert.equal(docs.length, 1)
 })
 
 it('should find 1 document with title containing World when case sensitive', async function () {
@@ -80,7 +113,7 @@ it('should be able to search strings with .-"', async function () {
 
 it('should not allow search request based on excluded field', async function () {
   try {
-    let docs = await app.service('users').find({ query: { fullName: { $search: 'a' } } })
+    await app.service('users').find({ query: { fullName: { $search: 'a' } } })
     assert.fail('should have raised error')
   } catch (error) {
     assert.ok(error)
@@ -120,4 +153,11 @@ it('should sanitize search request based on regex on escaped field', async funct
 it('should manage field matching with complex operators', async function () {
   let docs = await app.service('users').find({ query: { $or: [ { firstName: { $search: 'ay' } }, { lastName: { $search: 'm' } } ] } })
   assert.equal(docs.length, 3)
+})
+
+it('should work with both full text search and regex search', async function () {
+  let ft = await app.service('both').find({ query: { $search: 'World' } })
+  let reg = await app.service('both').find({ query: { title: { $search: 'World' } } })
+  assert.equal(ft.length, 2)
+  assert.equal(reg.length, 2)
 })
