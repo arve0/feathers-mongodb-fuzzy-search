@@ -1,5 +1,7 @@
 const feathers = require('feathers')
 const hooks = require('feathers-hooks')
+const rest = require('feathers-rest')
+const request = require('superagent')
 const MongoClient = require('mongodb').MongoClient
 const service = require('feathers-mongodb')
 const search = require('./')
@@ -25,6 +27,7 @@ before(async function () {
   let db = await MongoClient.connect('mongodb://localhost:27017/feathers')
   app = feathers()
   app.configure(hooks())
+  app.configure(rest())
 
   app.use('/messages', service({ Model: db.collection('messages') }))
   app.service('messages').Model.createIndex({ title: 'text' })
@@ -161,3 +164,17 @@ it('should work with both full text search and regex search', async function () 
   assert.equal(ft.length, 2)
   assert.equal(reg.length, 2)
 })
+
+it('should find 2 documents with title containing World when case insensitive using REST API', function (done) {
+  let server = app.listen(3030)
+  server.once('listening', async _ => {
+    try {
+      let response = await request.get('http://localhost:3030/messages').query({ $search: 'World' })
+      assert.equal(response.body.length, 2)
+      done()
+    } catch (error) {
+      done(error)
+    }
+  })
+})
+

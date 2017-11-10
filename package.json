@@ -30,8 +30,10 @@
     "feathers": "^2.1.4",
     "feathers-hooks": "^2.0.1",
     "feathers-mongodb": "^2.9.0",
+    "feathers-rest": "^1.8.1",
     "mocha": "^3.4.2",
-    "mongodb": "^2.2.29"
+    "mongodb": "^2.2.29",
+    "superagent": "^3.8.1"
   },
   "dependencies": {
     "feathers-commons": "^0.8.7",
