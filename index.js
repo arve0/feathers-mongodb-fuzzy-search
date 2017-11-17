@@ -36,8 +36,8 @@ function transformSearchFieldsInQuery (query, options, fieldName) {
       // Field should either be included, or not excluded
       if ((options.fields.length && !options.fields.includes(key)) ||
           options.excludedFields.includes(key)) {
-          throw new errors.BadRequest('You are not allowed to perform $search on field ' + key)
-        }
+        throw new errors.BadRequest('You are not allowed to perform $search on field ' + key)
+      }
       /**
        * {
        *   field: {
@@ -50,8 +50,8 @@ function transformSearchFieldsInQuery (query, options, fieldName) {
       // Default to case insensitive if not given
       // Sanitize when required
       if (!options.fieldsNotEscaped.includes(fieldName)) {
-          value = regExpEscape(value)
-        }
+        value = regExpEscape(value)
+      }
       // Update query
       query['$regex'] = query.$caseSensitive ? new RegExp(value) : new RegExp(value, 'i')
       // Delete unused field
@@ -72,31 +72,31 @@ module.exports = function (opts = {}) {
   } else if (Array.isArray(opts.excludedFields) && opts.excludedFields.length) {
     opts.fields = []
     return regexFieldSearch
-    }
+  }
 
   return fullTextSearch
 
   function regexFieldSearch (hook) {
     transformSearchFieldsInQuery(hook.params.query, opts)
-        }
+  }
 
   function fullTextSearch (hook) {
     if (hook.id || !hook.params.query || !hook.params.query.$search) {
       return
-        }
+    }
     let query = hook.params.query
     query.$text = {
       $search: opts.escape ? escape(query.$search) : query.$search
-        }
+    }
     delete query.$search
     if (query.$language) {
       query.$text.$language = query.$language
       delete query.$language
-        }
+    }
     if (query.$caseSensitive) {
       query.$text.$caseSensitive = query.$caseSensitive
       delete query.$caseSensitive
-      }
+    }
     if (query.$diacriticSensitive) {
       query.$text.$diacriticSensitive = query.$diacriticSensitive
       delete query.$diacriticSensitive
