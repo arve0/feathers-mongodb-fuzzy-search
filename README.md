@@ -51,6 +51,17 @@ let userDocuments = await app.service('users').find({
 
 Complete example [here](./example.js).
 
+## REST usage
+Full text search for `qwerty` with mongodb $text:
+```sh
+curl http://localhost:3030/messages?$search=qwerty
+```
+
+Search for `qwerty` on field `firstName` with mongodb $regex:
+```sh
+curl http://localhost:3030/users?firstName[$search]=qwerty
+```
+
 ## Notes
 
 ### Full-text search
