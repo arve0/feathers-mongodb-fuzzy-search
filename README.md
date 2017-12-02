@@ -33,7 +33,11 @@ app.hooks({
 // you may add multiple fields to the text index
 // see the mongodb documentation for more on $text
 const messages = app.service('messages')
+
+// If you're using directly MongoDB:
 messages.Model.createIndex({ title: 'text' })
+// or if you're using Mongoose, use that instead:
+// messages.Model.index({  title: 'text' })
 
 // find documents with title containing 'cat'
 // will find titles including 'cat', 'cats', etc. thanks to mongodb stemming
