@@ -14,7 +14,13 @@ npm install feathers-mongodb-fuzzy-search
 
 ## Usage
 ```js
+const service = require('feathers-mongodb')
 const search = require('feathers-mongodb-fuzzy-search')
+
+app.use('/messages', service({
+  Model: db.collection('messages'),
+  whitelist: ['$text', '$search'], // fields used by feathers-mongodb-fuzzy-search
+}))
 
 // add search hook
 // may also use service.hooks to apply it on individual services only
@@ -80,6 +86,18 @@ app.hooks({
 ```
 
 ### RegExp field search
+Remember to allow `$regex` in the service:
+
+```js
+app.use('/messages', service({
+  Model: db.collection('messages'),
+  whitelist: ['$regex'], // field used by feathers-mongodb-fuzzy-search
+}))
+```
+
+If not, you will get the error `BadRequest: Invalid query parameter $regex` on requests.
+
+
 The `options` object given to `search(options)` supports the following:
 
 - `fields`: Array of field names to allow searching in.
@@ -110,6 +128,15 @@ users.find({
     $language: 'none'
   }
 })
+```
+
+**NOTE:** Remeber to allow the fields in your service:
+```js
+  app.use('/messages', service({
+    Model: db.collection('messages'),
+    // fields used by feathers-mongodb-fuzzy-search
+    whitelist: ['$text', '$search', '$caseSensitive', '$language', '$diacriticSensitive'],
+  }))
 ```
 
 ### Additional information

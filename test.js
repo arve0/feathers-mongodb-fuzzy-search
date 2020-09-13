@@ -24,11 +24,20 @@ const userDocuments = [
 
 let app
 before(async function () {
-  let db = await MongoClient.connect('mongodb://localhost:27017/feathers')
+  let client = await MongoClient.connect('mongodb://localhost:27017/')
+  let db = client.db('feathers')
   app = express(feathers())
   app.configure(rest())
-  
-  app.use('/messages', service({ Model: db.collection('messages') }))
+
+  let serviceOptions = {
+    whitelist: ['$search', '$caseSensitive', '$text', '$regex'], // allow these mongodb fields
+    multi: true, // allow inserting multiple documents at once
+  }
+
+  app.use('/messages', service({
+    Model: db.collection('messages'),
+    ...serviceOptions
+  }))
   app.service('messages').Model.createIndex({ title: 'text' })
   app.service('messages').hooks({
     before: {
@@ -36,7 +45,10 @@ before(async function () {
     }
   })
 
-  app.use('/users', service({ Model: db.collection('users') }))
+  app.use('/users', service({
+    Model: db.collection('users'),
+    ...serviceOptions
+  }))
   app.service('users').hooks({
     before: {
       all: search({
@@ -46,7 +58,10 @@ before(async function () {
     }
   })
 
-  app.use('/both', service({ Model: db.collection('both') }))
+  app.use('/both', service({
+    Model: db.collection('both'),
+    ...serviceOptions
+  }))
   app.service('both').Model.createIndex({ title: 'text' })
   app.service('both').hooks({
     before: {

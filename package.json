@@ -4,7 +4,7 @@
   "description": "hook which adds fuzzy search for mongodb through $search in find query",
   "main": "index.js",
   "scripts": {
-    "mongo": "docker run --rm -p 27017:27017 -v $PWD/data:/data/db mongo",
+    "mongo": "docker run --rm -p 27017:27017 mongo",
     "preversion": "npm test",
     "postpublish": "git push && git push --tags",
     "test": "mocha --exit"
@@ -29,9 +29,9 @@
   "devDependencies": {
     "@feathersjs/feathers": "^4.3.10",
     "@feathersjs/express": "^4.3.10",
-    "feathers-mongodb": "^2.9.0",
-    "mocha": "^6.2.0",
-    "mongodb": "^2.2.29",
+    "feathers-mongodb": "^6.1.0",
+    "mocha": "^8.1.3",
+    "mongodb": "^3.6.2",
     "superagent": "^3.8.1"
   },
   "dependencies": {
