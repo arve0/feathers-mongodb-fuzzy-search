@@ -4,7 +4,7 @@
   "description": "hook which adds fuzzy search for mongodb through $search in find query",
   "main": "index.js",
   "scripts": {
-    "mongo": "mongod --dbpath data",
+    "mongo": "docker run --rm -p 27017:27017 -v $PWD/data:/data/db mongo",
     "preversion": "npm test",
     "postpublish": "git push && git push --tags",
     "test": "mocha --exit"
