@@ -1,5 +1,5 @@
-const utils = require('feathers-commons')
-const errors = require('feathers-errors')
+const utils = require('@feathersjs/commons')
+const errors = require('@feathersjs/errors')
 
 /**
  * Adds " around `str` and removes any " in `str`.
@@ -23,7 +23,7 @@ function regExpEscape (s) {
 }
 
 function transformSearchFieldsInQuery (query, options, fieldName) {
-  utils.each(query, (value, key) => {
+  utils._.each(query, (value, key) => {
     if (key === '$text') {
       return
     }

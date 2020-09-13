@@ -1,6 +1,6 @@
-const feathers = require('feathers')
-const hooks = require('feathers-hooks')
-const rest = require('feathers-rest')
+const feathers = require('@feathersjs/feathers')
+const express = require('@feathersjs/express')
+const rest = require('@feathersjs/express/rest')
 const request = require('superagent')
 const MongoClient = require('mongodb').MongoClient
 const service = require('feathers-mongodb')
@@ -25,10 +25,9 @@ const userDocuments = [
 let app
 before(async function () {
   let db = await MongoClient.connect('mongodb://localhost:27017/feathers')
-  app = feathers()
-  app.configure(hooks())
+  app = express(feathers())
   app.configure(rest())
-
+  
   app.use('/messages', service({ Model: db.collection('messages') }))
   app.service('messages').Model.createIndex({ title: 'text' })
   app.service('messages').hooks({

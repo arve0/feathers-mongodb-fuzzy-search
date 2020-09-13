@@ -7,7 +7,7 @@
     "mongo": "mongod --dbpath data",
     "preversion": "npm test",
     "postpublish": "git push && git push --tags",
-    "test": "mocha"
+    "test": "mocha --exit"
   },
   "repository": {
     "type": "git",
@@ -27,17 +27,16 @@
   },
   "homepage": "https://github.com/arve0/feathers-mongodb-fuzzy-search#readme",
   "devDependencies": {
-    "feathers": "^2.1.4",
-    "feathers-hooks": "^2.0.1",
+    "@feathersjs/feathers": "^4.3.10",
+    "@feathersjs/express": "^4.3.10",
     "feathers-mongodb": "^2.9.0",
-    "feathers-rest": "^1.8.1",
-    "mocha": "^3.4.2",
+    "mocha": "^6.2.0",
     "mongodb": "^2.2.29",
     "superagent": "^3.8.1"
   },
   "dependencies": {
-    "feathers-commons": "^0.8.7",
-    "feathers-errors": "^2.9.1"
+    "@feathersjs/commons": "^4.3.7",
+    "@feathersjs/errors": "^4.3.10"
   },
   "runkitExampleFilename": "example.js"
 }
